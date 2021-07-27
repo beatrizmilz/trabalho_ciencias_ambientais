@@ -9,7 +9,8 @@ library(magrittr)
 library(rvest)
 
 
-url <- "https://sucupira.capes.gov.br/sucupira/public/consultas/coleta/programa/quantitativos/quantitativoIes.xhtml?areaAvaliacao=49&areaConhecimento=90500008"
+url <-
+  "https://sucupira.capes.gov.br/sucupira/public/consultas/coleta/programa/quantitativos/quantitativoIes.xhtml?areaAvaliacao=49&areaConhecimento=90500008"
 
 html <- rvest::read_html(url)
 
@@ -37,7 +38,7 @@ instituicoes <- raw_table %>%
     total_de_cursos_de_pos_graduacao_mp = X13,
     total_de_cursos_de_pos_graduacao_dp = X14
   ) %>%
-  dplyr::slice(-c(1,2), -dplyr::n())
+  dplyr::slice(-c(1, 2),-dplyr::n())
 
 
 
@@ -52,63 +53,84 @@ links_sujos <- html %>%
   rvest::html_attr("href")
 
 
-links_limpos <- links_sujos[stringr::str_starts(links_sujos, "/sucupira/public/consultas/coleta/programa/quantitativos/quantitativoPrograma.xhtml")]
+links_limpos <-
+  links_sujos[stringr::str_starts(
+    links_sujos,
+    "/sucupira/public/consultas/coleta/programa/quantitativos/quantitativoPrograma.xhtml"
+  )]
 
 
-links_completos <- paste0("https://sucupira.capes.gov.br", links_limpos)
+links_completos <-
+  paste0("https://sucupira.capes.gov.br", links_limpos)
 
 
-buscar_lista_de_cursos <- function(links){
-  links %>%
+buscar_lista_de_cursos <- function(links) {
+  base_tabela <- links %>%
     rvest::read_html() %>%
     rvest::html_table() %>%
     purrr::pluck(1) %>%
     dplyr::mutate_all(as.character)
-}
-
-lista_de_cursos_raw <- purrr::map_dfr(.x = links_completos, .f = buscar_lista_de_cursos)
 
 
-lista_de_cursos <- lista_de_cursos_raw %>%
-  janitor::clean_names() %>%
-  tidyr::separate(programa, into = c("programa", "codigo"), sep = "\\(", extra = "merge") %>%
-  tidyr::separate(ies, into = c("ies", "ies_sigla"), sep = "\\(", extra = "merge") %>%
-  dplyr::mutate(codigo = stringr::str_remove(codigo, "\\)$"),
-                codigo = stringr::str_remove(codigo, "RENAC\\) \\("),
-                ies_sigla = stringr::str_remove(ies_sigla, "\\)"),
-                ies = dplyr::case_when(ies_sigla == "SÃO CARLOS (USP/SC)" ~ "UNIVERSIDADE DE SÃO PAULO - SÃO CARLOS",
-                                       ies_sigla == " ESCOLA SUPERIOR DE AGRICULTURA LUIZ DE QUEIROZ  (USP/ESALQ)" ~ "UNIVERSIDADE DE SÃO PAULO - ESCOLA SUPERIOR DE AGRICULTURA LUIZ DE QUEIROZ",
-                                       TRUE ~ ies),
 
-                ies_sigla = dplyr::case_when(ies_sigla == "SÃO CARLOS (USP/SC)" ~ "USP",
-                                       ies_sigla == " ESCOLA SUPERIOR DE AGRICULTURA LUIZ DE QUEIROZ  (USP/ESALQ)" ~ "USP",
-                                       TRUE ~ ies_sigla),
-                dplyr::across(.cols = me:dp, readr::parse_number),
-                dplyr::across(.cols = me:dp, tidyr::replace_na, 0),
-
-                )
-
-usethis::use_data(lista_de_cursos, overwrite = TRUE)
-
-
-# informações sobre os cursos ------
-
-buscar_links_de_cursos_completo <- function(links){
- links_cursos_sujo <-  links %>%
+  links_cursos_sujo <-  links %>%
     rvest::read_html() %>%
     rvest::html_node(xpath = "//*[@class='col-xs-12 table-responsive']") %>%
     rvest::html_nodes(xpath = "//tbody") %>%
     rvest::html_nodes(xpath = "//a") %>%
     rvest::html_attr("href")
 
-  links_curso_limpos <- links_cursos_sujo[stringr::str_starts(links_cursos_sujo, "/sucupira/public/consultas/coleta/programa/viewPrograma.xhtml?")]
+  links_curso_limpos <-
+    links_cursos_sujo[stringr::str_starts(
+      links_cursos_sujo,
+      "/sucupira/public/consultas/coleta/programa/viewPrograma.xhtml?"
+    )]
 
-  links_curso_completos <- paste0("https://sucupira.capes.gov.br", links_curso_limpos)
+  links_curso_completos <-
+    paste0("https://sucupira.capes.gov.br", links_curso_limpos) %>%
+    tibble::as_tibble() %>%
+    dplyr::rename(link = value)
 
-  links_curso_completos
+  dplyr::bind_cols(base_tabela, links_curso_completos)
+
 }
 
+lista_de_cursos_raw <-
+  purrr::map_dfr(.x = links_completos, .f = buscar_lista_de_cursos)
 
-lista_de_links_de_cursos <- purrr::map(.x = links_completos,
-                                       .f = buscar_links_de_cursos_completo)
 
+lista_de_cursos <- lista_de_cursos_raw %>%
+  janitor::clean_names() %>%
+  tidyr::separate(
+    programa,
+    into = c("programa", "codigo"),
+    sep = "\\(",
+    extra = "merge"
+  ) %>%
+  tidyr::separate(
+    ies,
+    into = c("ies", "ies_sigla"),
+    sep = "\\(",
+    extra = "merge"
+  ) %>%
+  dplyr::mutate(
+    codigo = stringr::str_remove(codigo, "\\)$"),
+    codigo = stringr::str_remove(codigo, "RENAC\\) \\("),
+    ies_sigla = stringr::str_remove(ies_sigla, "\\)"),
+    ies = dplyr::case_when(
+      ies_sigla == "SÃO CARLOS (USP/SC)" ~ "UNIVERSIDADE DE SÃO PAULO - SÃO CARLOS",
+      ies_sigla == " ESCOLA SUPERIOR DE AGRICULTURA LUIZ DE QUEIROZ  (USP/ESALQ)" ~ "UNIVERSIDADE DE SÃO PAULO - ESCOLA SUPERIOR DE AGRICULTURA LUIZ DE QUEIROZ",
+      TRUE ~ ies
+    ),
+
+    ies_sigla = dplyr::case_when(
+      ies_sigla == "SÃO CARLOS (USP/SC)" ~ "USP",
+      ies_sigla == " ESCOLA SUPERIOR DE AGRICULTURA LUIZ DE QUEIROZ  (USP/ESALQ)" ~ "USP",
+      TRUE ~ ies_sigla
+    ),
+    dplyr::across(.cols = me:dp, readr::parse_number),
+    dplyr::across(.cols = me:dp, tidyr::replace_na, 0),
+
+  )
+
+usethis::use_data(lista_de_cursos, overwrite = TRUE)
