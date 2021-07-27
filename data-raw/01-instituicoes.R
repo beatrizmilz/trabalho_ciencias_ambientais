@@ -64,6 +64,9 @@ links_completos <-
   paste0("https://sucupira.capes.gov.br", links_limpos)
 
 
+usethis::use_data(links_completos, overwrite = TRUE)
+
+
 buscar_lista_de_cursos <- function(links) {
   base_tabela <- links %>%
     rvest::read_html() %>%
