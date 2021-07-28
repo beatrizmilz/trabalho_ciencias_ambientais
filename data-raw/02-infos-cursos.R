@@ -2,8 +2,8 @@ library(magrittr)
 library(rvest)
 devtools::load_all(".")
 
-#links <- faltantes$link[1]
-
+links <-
+  trabalho_ciencias_ambientais::lista_de_cursos$link[1]
 
 buscar_info_programas <- function(links) {
   html <- links %>%
@@ -11,6 +11,12 @@ buscar_info_programas <- function(links) {
 
   col_md_10 <- html %>%
     rvest::html_nodes(xpath = "//*[@class='col-md-10']")
+
+  email_programa <- col_md_10[18] %>%
+    rvest::html_text() %>%
+    stringr::str_remove_all("\n|\t") %>%
+    stringr::str_squish()
+
 
   nome_programa <- col_md_10 %>%
     rvest::html_nodes(xpath = "//*[@id='form:nomeProg']") %>%
@@ -109,6 +115,7 @@ buscar_info_programas <- function(links) {
     instituicao,
     nome_programa,
     codigo_programa,
+    email_programa,
     situacao_programa,
     data_inicio_programa ,
     url,
