@@ -18,3 +18,5 @@ Depends:
     R (>= 2.10)
 URL: https://github.com/beatrizmilz/trabalho_ciencias_ambientais
 BugReports: https://github.com/beatrizmilz/trabalho_ciencias_ambientais/issues
+Imports: 
+    magrittr

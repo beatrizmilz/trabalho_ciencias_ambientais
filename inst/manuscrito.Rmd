@@ -1,0 +1,56 @@
+---
+title: "Untitled"
+author: "bia"
+date: "7/27/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+devtools::load_all(".")
+library(magrittr)
+```
+
+## Metodologia
+
+Levantamento feito com webscraping.
+
+```{r}
+categorias_cursos <- informacoes_programas_tidy %>% 
+  dplyr::count(grau_do_curso) %>% 
+  dplyr::arrange(-n) %>% 
+  dplyr::pull(grau_do_curso) %>% 
+  knitr::combine_words(sep = ", ", and = " e ", oxford_comma = FALSE)
+
+```
+
+O levantamento foi feito na plataforma Sucupira, no dia 27 de julho de 2021. Foi realizado uma busca por programas de pós-graduação avaliados e reconhecidos por área de avaliação de ciências ambientais. Dentre os programas de pós-graduação encontrados, cada programa apresentava até duas modalidades de curso, dentre as seguintes opções: `r categorias_cursos`.
+
+
+filtros para buscar?
+
+
+```{r}
+informacoes_programas_tidy %>% 
+  dplyr::filter(situacao_programa == "EM FUNCIONAMENTO") %>%
+  
+  dplyr::arrange(desc(nota_do_curso))
+```
+
+
+## Resultados
+
+A busca resultou em um total de `r nrow(trabalho_ciencias_ambientais::informacoes_programas)` programas de pós-graduação, que no total apresentavam  `r nrow(trabalho_ciencias_ambientais::informacoes_programas_tidy)` cursos. 
+
+
+```{r}
+informacoes_programas_tidy %>% 
+  dplyr::count(grau_do_curso) %>% 
+  dplyr::arrange(-n) %>% 
+  dplyr::rename("Grau do curso" = grau_do_curso, "Número de cursos" = n) %>% 
+  flextable::flextable() %>% 
+  flextable::autofit()
+```
+
+
+
